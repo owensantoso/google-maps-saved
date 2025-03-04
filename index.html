@@ -8,51 +8,75 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 10px;
+      margin: 0;
       padding: 0;
       background: #f9f9f9;
     }
-    .header {
+
+    /* Sticky Header Bar */
+    .headerBar {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background: #f9f9f9;
+      padding: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Page Title */
+    .headerBar h1 {
+      text-align: center;
+      margin: 0 0 10px;
+    }
+
+    /* Search row: input on left, item count on right */
+    .searchRow {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
       flex-wrap: wrap;
-      margin-top: 20px;
-      padding: 0 10px;
-    }
-    h1 {
-      font-size: 1.5em;
-      margin: 0;
-    }
-    #searchContainer {
-      position: relative;
-      width: 95%;
+      align-items: center;
+      gap: 10px;
       max-width: 600px;
-      margin: 20px auto;
+      margin: 0 auto;
     }
+
     #searchInput {
-      width: 100%;
+      flex: 1;
+      min-width: 180px;
       padding: 10px;
       font-size: 1em;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+
     #itemCount {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(0, 0, 0, 0.1);
+      margin-left: auto; /* pushes item count to the right */
+      background: rgba(0, 0, 0, 0.05);
       padding: 5px 10px;
       border-radius: 12px;
       font-size: 0.9em;
       color: #333;
     }
+
+    /* Checkbox row: below the search row */
+    .checkboxRow {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 10px;
+    }
+
+    .checkboxRow label {
+      font-size: 0.95em;
+    }
+
+    /* Results Container */
     #results {
       width: 95%;
       max-width: 600px;
-      margin: 0 auto;
+      margin: 20px auto;
     }
+
+    /* Place Card */
     .place {
       background: #fff;
       margin-bottom: 15px;
@@ -60,10 +84,22 @@
       border-radius: 5px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
+    /* If place has "Want to go" tag */
+    .wantToGo {
+      background: #d9f8d9; /* Light green background */
+    }
+
+    /* If place has "Favourite places" tag */
+    .favouritePlace {
+      background: #ffe0e0; /* Light pink background */
+    }
+
     .place h3 {
       margin: 0 0 10px;
       font-size: 1.2em;
     }
+
     .place h3 a {
       text-decoration: none;
       color: #0066cc;
@@ -71,25 +107,50 @@
     .place h3 a:hover {
       text-decoration: underline;
     }
+
     .place p {
       margin: 5px 0;
       line-height: 1.4;
       font-size: 0.95em;
     }
-    .tags {
-      font-size: 0.9em;
-      color: #555;
+
+    /* Tag Badges */
+    .tagContainer {
+      margin-top: 10px;
+    }
+    .tagBadge {
+      display: inline-block;
+      background: #eee;
+      color: #333;
+      padding: 4px 8px;
+      margin: 0 6px 6px 0;
+      border-radius: 12px;
+      font-size: 0.85em;
     }
   </style>
 </head>
 <body>
-  <div class="header">
+
+  <!-- Sticky header bar with title -->
+  <div class="headerBar">
     <h1>Search Places</h1>
+    <div class="searchRow">
+      <input type="text" id="searchInput" placeholder="Search by tag, name, note, etc.">
+      <div id="itemCount">0 items</div>
+    </div>
+    <!-- Checkboxes below the search row -->
+    <div class="checkboxRow">
+      <label>
+        <input type="checkbox" id="wantToGoCheckbox">
+        Want to go
+      </label>
+      <label>
+        <input type="checkbox" id="favoriteCheckbox">
+        Favorites
+      </label>
+    </div>
   </div>
-  <div id="searchContainer">
-    <input type="text" id="searchInput" placeholder="Search by tag, name, note, etc.">
-    <div id="itemCount"></div>
-  </div>
+
   <div id="results"></div>
 
   <script>
@@ -97,43 +158,23 @@
 
     // Helper function to convert URLs in a string to clickable links.
     function linkify(text) {
-      // This regex matches http:// or https:// followed by non-space characters.
       return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
 
-    // Function to update the item count display.
+    // Update the item count display.
     function updateItemCount(count) {
-      const countEl = document.getElementById('itemCount');
-      countEl.textContent = count + " items";
+      document.getElementById('itemCount').textContent = count + " items";
     }
 
-    // Load the JSON file
-    fetch('places.json')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok: ' + response.statusText);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('Data loaded successfully:', data);
-        places = data.places;
-        displayResults(places);
-        // Focus on search bar when data is loaded.
-        document.getElementById('searchInput').focus();
-      })
-      .catch(error => {
-        console.error('Error loading places.json:', error);
-        document.getElementById('results').innerHTML = '<p>Error loading data.</p>';
-      });
-
-    // Listen for search input changes
-    document.getElementById('searchInput').addEventListener('input', function() {
-      const query = this.value.toLowerCase().trim();
+    // Filters the places based on search query and checkboxes.
+    function filterResults() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
       const queryWords = query ? query.split(/\s+/) : [];
-      
+      const wantToGoChecked = document.getElementById('wantToGoCheckbox').checked;
+      const favoriteChecked = document.getElementById('favoriteCheckbox').checked;
+
       const filtered = places.filter(place => {
-        // Combine searchable fields using both lowercase and capitalized keys
+        // Combine searchable fields (using both lowercase and capitalized keys).
         const combined = [
           place.title || place.Title || '',
           place.note || place.Note || '',
@@ -141,12 +182,51 @@
           ...(place.tags || [])
         ].join(' ').toLowerCase();
 
-        return queryWords.every(word => combined.includes(word));
+        // Must match all search query words.
+        const matchesQuery = queryWords.every(word => combined.includes(word));
+
+        // If 'Want to go' is checked, place must have 'want to go' tag.
+        let matchesWantToGo = true;
+        if (wantToGoChecked) {
+          const tagsLower = (place.tags || []).map(tag => tag.toLowerCase());
+          matchesWantToGo = tagsLower.includes('want to go');
+        }
+
+        // If 'Favorites' is checked, place must have 'favourite places' tag.
+        let matchesFavorite = true;
+        if (favoriteChecked) {
+          const tagsLower = (place.tags || []).map(tag => tag.toLowerCase());
+          matchesFavorite = tagsLower.includes('favourite places');
+        }
+
+        return matchesQuery && matchesWantToGo && matchesFavorite;
       });
       displayResults(filtered);
-    });
+    }
 
-    // Function to display results on the page.
+    // Load JSON data.
+    fetch('places.json')
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Data loaded successfully:', data);
+        places = data.places;
+        filterResults();
+        document.getElementById('searchInput').focus();
+      })
+      .catch(error => {
+        console.error('Error loading places.json:', error);
+        document.getElementById('results').innerHTML = '<p>Error loading data.</p>';
+      });
+
+    // Update filter whenever the search input or checkboxes change.
+    document.getElementById('searchInput').addEventListener('input', filterResults);
+    document.getElementById('wantToGoCheckbox').addEventListener('change', filterResults);
+    document.getElementById('favoriteCheckbox').addEventListener('change', filterResults);
+
+    // Display results.
     function displayResults(results) {
       updateItemCount(results.length);
       const resultsDiv = document.getElementById('results');
@@ -161,14 +241,22 @@
         const placeDiv = document.createElement('div');
         placeDiv.className = 'place';
 
-        // Use Title property if available, otherwise fallback to lowercase key
+        // Check tags for color coding.
+        const tagsLower = (place.tags || []).map(tag => tag.toLowerCase());
+        if (tagsLower.includes('want to go')) {
+          placeDiv.classList.add('wantToGo');
+        }
+        if (tagsLower.includes('favourite places')) {
+          placeDiv.classList.add('favouritePlace');
+        }
+
         const titleText = place.title || place.Title || 'Untitled';
         const noteText = place.note || place.Note || '';
         const commentText = place.comment || place.Comment || '';
         const urlText = place.url || place.URL || '';
         const tagsArray = place.tags || [];
 
-        // Create a clickable title linking to the URL
+        // Title as clickable link if URL exists.
         const title = document.createElement('h3');
         if (urlText) {
           const link = document.createElement('a');
@@ -182,7 +270,7 @@
         }
         placeDiv.appendChild(title);
 
-        // For the notes section, transform any URLs into clickable links.
+        // Note section with linkify.
         if (noteText) {
           const note = document.createElement('p');
           note.innerHTML = linkify(noteText);
@@ -195,11 +283,19 @@
           placeDiv.appendChild(comment);
         }
 
+        // Display tags as colored badges
         if (tagsArray.length > 0) {
-          const tags = document.createElement('p');
-          tags.className = 'tags';
-          tags.textContent = 'Tags: ' + tagsArray.join(', ');
-          placeDiv.appendChild(tags);
+          const tagContainer = document.createElement('div');
+          tagContainer.className = 'tagContainer';
+
+          tagsArray.forEach(tag => {
+            const badge = document.createElement('span');
+            badge.className = 'tagBadge';
+            badge.textContent = tag;
+            tagContainer.appendChild(badge);
+          });
+
+          placeDiv.appendChild(tagContainer);
         }
 
         resultsDiv.appendChild(placeDiv);
