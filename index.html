@@ -2,39 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- Mobile Responsive Meta Tag -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Places Search</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      margin: 10px;
+      padding: 0;
+      background: #f9f9f9;
     }
     h1 {
-      margin-bottom: 10px;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 1.5em;
     }
     #searchInput {
-      width: 100%;
+      width: 95%;
+      max-width: 600px;
+      display: block;
+      margin: 20px auto;
       padding: 10px;
       font-size: 1em;
-      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #results {
+      width: 95%;
+      max-width: 600px;
+      margin: 0 auto;
     }
     .place {
-      border-bottom: 1px solid #ccc;
-      padding: 10px 0;
+      background: #fff;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .place h3 {
-      margin: 0;
-      padding: 0;
+      margin: 0 0 10px;
+      font-size: 1.2em;
+    }
+    .place h3 a {
+      text-decoration: none;
+      color: #0066cc;
+    }
+    .place h3 a:hover {
+      text-decoration: underline;
+    }
+    .place p {
+      margin: 5px 0;
+      line-height: 1.4;
+      font-size: 0.95em;
     }
     .tags {
       font-size: 0.9em;
       color: #555;
-    }
-    .url a {
-      color: #0066cc;
-      text-decoration: none;
-    }
-    .url a:hover {
-      text-decoration: underline;
     }
   </style>
 </head>
@@ -55,7 +78,7 @@
         return response.json();
       })
       .then(data => {
-        console.log('Data loaded successfully:', data); // Debug log
+        console.log('Data loaded successfully:', data);
         places = data.places;
         displayResults(places);
       })
@@ -64,7 +87,7 @@
         document.getElementById('results').innerHTML = '<p>Error loading data.</p>';
       });
 
-    // Add an event listener for the search input
+    // Listen for search input changes
     document.getElementById('searchInput').addEventListener('input', function() {
       const query = this.value.toLowerCase().trim();
       const queryWords = query ? query.split(/\s+/) : [];
@@ -83,7 +106,7 @@
       displayResults(filtered);
     });
 
-    // Function to display results on the page.
+    // Display the results on the page.
     function displayResults(results) {
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
@@ -101,12 +124,21 @@
         const titleText = place.title || place.Title || 'Untitled';
         const noteText = place.note || place.Note || '';
         const commentText = place.comment || place.Comment || '';
-        // Access URL from either key
         const urlText = place.url || place.URL || '';
         const tagsArray = place.tags || [];
 
+        // Create a clickable title linking to the URL
         const title = document.createElement('h3');
-        title.textContent = titleText;
+        if (urlText) {
+          const link = document.createElement('a');
+          link.href = urlText;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = titleText;
+          title.appendChild(link);
+        } else {
+          title.textContent = titleText;
+        }
         placeDiv.appendChild(title);
 
         if (noteText) {
@@ -119,18 +151,6 @@
           const comment = document.createElement('p');
           comment.textContent = commentText;
           placeDiv.appendChild(comment);
-        }
-
-        if (urlText) {
-          const urlPara = document.createElement('p');
-          urlPara.className = 'url';
-          const link = document.createElement('a');
-          link.href = urlText;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.textContent = urlText;
-          urlPara.appendChild(link);
-          placeDiv.appendChild(urlPara);
         }
 
         if (tagsArray.length > 0) {
