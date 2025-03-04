@@ -74,32 +74,36 @@
       padding: 15px;
       border-radius: 5px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      /* Forcing text to wrap inside place cards */
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
-    /* If place has "Want to go" tag */
+    /* Color coding */
     .wantToGo {
-      background: #d9f8d9; /* Light green background */
+      background: #d9f8d9; /* Light green */
     }
-    /* If place has "Favourite places" tag */
     .favouritePlace {
-      background: #ffe0e0; /* Light pink background */
+      background: #ffe0e0; /* Light pink */
     }
 
-    /* Place content is split into two columns: left & right */
+    /* Two-column layout for each place */
     .placeRow {
       display: flex;
-      align-items: flex-start; /* top-align */
+      align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
     }
     .placeLeft {
       flex: 1;
+      /* Ensure text wraps inside left column too */
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
     .placeRight {
       flex: 0 0 auto;
-      text-align: right;
-      min-width: 120px;
+      text-align: center;
+      min-width: 80px;
     }
-
     .place h3 {
       margin: 0 0 10px;
       font-size: 1.2em;
@@ -115,28 +119,32 @@
       margin: 5px 0;
       line-height: 1.4;
       font-size: 0.95em;
+      /* Force link wrapping inside paragraphs */
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
 
-    /* Tag Badges */
+    /* Tag Badge Styles */
     .tagContainer {
       margin-top: 10px;
     }
     .tagBadge {
       display: inline-flex;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       background: #eee;
       color: #333;
-      padding: 4px 8px;
+      padding: 4px 6px;
       margin: 0 6px 6px 0;
       border-radius: 12px;
-      font-size: 0.85em;
-      white-space: nowrap; /* keep icon and text together */
+      font-size: 0.6em; /* smaller font for text */
+      box-sizing: border-box;
     }
     .tagBadge img {
-      width: 1em;
-      height: 1em;
-      margin-right: 4px;
-      vertical-align: middle;
+      width: 2em;
+      height: 2em;
+      margin-bottom: 2px;
     }
   </style>
 </head>
@@ -149,7 +157,6 @@
       <input type="text" id="searchInput" placeholder="Search by tag, name, note, etc.">
       <div id="itemCount">0 items</div>
     </div>
-    <!-- Checkboxes below the search row -->
     <div class="checkboxRow">
       <label>
         <input type="checkbox" id="wantToGoCheckbox">
@@ -166,26 +173,25 @@
 
   <script>
     let places = [];
-    let emojiMap = {}; // For quick lookup of svgUrl by tag name.
+    let emojiMap = {}; // Lookup map for tag emojis.
 
-    // Convert the "emojilists" array into a lookup map: { "korean": "https://..." }
+    // Load emojilists into a lookup map.
     function loadEmojiMap(emojilists) {
       emojilists.forEach(item => {
         emojiMap[item.name.toLowerCase()] = item.svgUrl;
       });
     }
 
-    // Helper function to convert URLs in a string to clickable links.
+    // Convert URLs in text to clickable links.
     function linkify(text) {
       return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
 
-    // Update the item count display.
     function updateItemCount(count) {
       document.getElementById('itemCount').textContent = count + " items";
     }
 
-    // Filters the places based on search query and checkboxes.
+    // Filter results based on search query and checkboxes.
     function filterResults() {
       const query = document.getElementById('searchInput').value.toLowerCase().trim();
       const queryWords = query ? query.split(/\s+/) : [];
@@ -193,7 +199,6 @@
       const favoriteChecked = document.getElementById('favoriteCheckbox').checked;
 
       const filtered = places.filter(place => {
-        // Combine searchable fields (using both lowercase and capitalized keys).
         const combined = [
           place.title || place.Title || '',
           place.note || place.Note || '',
@@ -201,36 +206,29 @@
           ...(place.tags || [])
         ].join(' ').toLowerCase();
 
-        // Must match all search query words.
         const matchesQuery = queryWords.every(word => combined.includes(word));
-
-        // If 'Want to go' is checked, place must have 'want to go' tag.
         let matchesWantToGo = true;
         if (wantToGoChecked) {
           const tagsLower = (place.tags || []).map(tag => tag.toLowerCase());
           matchesWantToGo = tagsLower.includes('want to go');
         }
-
-        // If 'Favorites' is checked, place must have 'favourite places' tag.
         let matchesFavorite = true;
         if (favoriteChecked) {
           const tagsLower = (place.tags || []).map(tag => tag.toLowerCase());
           matchesFavorite = tagsLower.includes('favourite places');
         }
-
         return matchesQuery && matchesWantToGo && matchesFavorite;
       });
       displayResults(filtered);
     }
 
-    // Load JSON data. Must contain { "places": [...], "emojilists": [...] } at top level.
+    // Load JSON data (assuming { "places": [...], "emojilists": [...] }).
     fetch('places.json')
       .then(response => {
         if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
         return response.json();
       })
       .then(data => {
-        console.log('Data loaded successfully:', data);
         places = data.places || [];
         loadEmojiMap(data.emojilists || []);
         filterResults();
@@ -241,12 +239,10 @@
         document.getElementById('results').innerHTML = '<p>Error loading data.</p>';
       });
 
-    // Update filter whenever the search input or checkboxes change.
     document.getElementById('searchInput').addEventListener('input', filterResults);
     document.getElementById('wantToGoCheckbox').addEventListener('change', filterResults);
     document.getElementById('favoriteCheckbox').addEventListener('change', filterResults);
 
-    // Display results.
     function displayResults(results) {
       updateItemCount(results.length);
       const resultsDiv = document.getElementById('results');
@@ -261,7 +257,6 @@
         const placeDiv = document.createElement('div');
         placeDiv.className = 'place';
 
-        // Check tags for color coding.
         const tagsLower = (place.tags || []).map(tag => tag.toLowerCase());
         if (tagsLower.includes('want to go')) {
           placeDiv.classList.add('wantToGo');
@@ -270,17 +265,17 @@
           placeDiv.classList.add('favouritePlace');
         }
 
-        // Create the row container
+        // Create a two-column row.
         const rowDiv = document.createElement('div');
         rowDiv.className = 'placeRow';
         placeDiv.appendChild(rowDiv);
 
-        // Left column: title, note, comment
+        // Left column: title, note, comment.
         const leftDiv = document.createElement('div');
         leftDiv.className = 'placeLeft';
         rowDiv.appendChild(leftDiv);
 
-        // Right column: tags
+        // Right column: tags.
         const rightDiv = document.createElement('div');
         rightDiv.className = 'placeRight';
         rowDiv.appendChild(rightDiv);
@@ -304,20 +299,20 @@
         // Note
         const noteText = place.note || place.Note || '';
         if (noteText) {
-          const note = document.createElement('p');
-          note.innerHTML = linkify(noteText);
-          leftDiv.appendChild(note);
+          const noteElem = document.createElement('p');
+          noteElem.innerHTML = linkify(noteText);
+          leftDiv.appendChild(noteElem);
         }
 
         // Comment
         const commentText = place.comment || place.Comment || '';
         if (commentText) {
-          const comment = document.createElement('p');
-          comment.textContent = commentText;
-          leftDiv.appendChild(comment);
+          const commentElem = document.createElement('p');
+          commentElem.textContent = commentText;
+          leftDiv.appendChild(commentElem);
         }
 
-        // Tag badges in the right column
+        // Tag badges
         const tagsArray = place.tags || [];
         if (tagsArray.length > 0) {
           const tagContainer = document.createElement('div');
@@ -327,7 +322,6 @@
             const badge = document.createElement('span');
             badge.className = 'tagBadge';
 
-            // Check if there's an emoji for this tag
             const lowerTag = tag.toLowerCase();
             if (emojiMap[lowerTag]) {
               const img = document.createElement('img');
@@ -336,11 +330,12 @@
               badge.appendChild(img);
             }
 
-            // Append the tag text
-            badge.appendChild(document.createTextNode(tag));
+            const textElem = document.createElement('span');
+            textElem.textContent = tag;
+            badge.appendChild(textElem);
+
             tagContainer.appendChild(badge);
           });
-
           rightDiv.appendChild(tagContainer);
         }
 
