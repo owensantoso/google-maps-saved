@@ -12,20 +12,41 @@
       padding: 0;
       background: #f9f9f9;
     }
-    h1 {
-      text-align: center;
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
       margin-top: 20px;
-      font-size: 1.5em;
+      padding: 0 10px;
     }
-    #searchInput {
+    h1 {
+      font-size: 1.5em;
+      margin: 0;
+    }
+    #searchContainer {
+      position: relative;
       width: 95%;
       max-width: 600px;
-      display: block;
       margin: 20px auto;
+    }
+    #searchInput {
+      width: 100%;
       padding: 10px;
       font-size: 1em;
       border: 1px solid #ccc;
       border-radius: 4px;
+    }
+    #itemCount {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.1);
+      padding: 5px 10px;
+      border-radius: 12px;
+      font-size: 0.9em;
+      color: #333;
     }
     #results {
       width: 95%;
@@ -62,12 +83,23 @@
   </style>
 </head>
 <body>
-  <h1>Search Places</h1>
-  <input type="text" id="searchInput" placeholder="Search by tag, name, note, etc.">
+  <div class="header">
+    <h1>Search Places</h1>
+  </div>
+  <div id="searchContainer">
+    <input type="text" id="searchInput" placeholder="Search by tag, name, note, etc.">
+    <div id="itemCount"></div>
+  </div>
   <div id="results"></div>
 
   <script>
     let places = [];
+
+    // Function to update the item count display.
+    function updateItemCount(count) {
+      const countEl = document.getElementById('itemCount');
+      countEl.textContent = count + " items";
+    }
 
     // Load the JSON file
     fetch('places.json')
@@ -81,6 +113,8 @@
         console.log('Data loaded successfully:', data);
         places = data.places;
         displayResults(places);
+        // Focus on search bar when data is loaded.
+        document.getElementById('searchInput').focus();
       })
       .catch(error => {
         console.error('Error loading places.json:', error);
@@ -106,8 +140,9 @@
       displayResults(filtered);
     });
 
-    // Display the results on the page.
+    // Function to display results on the page.
     function displayResults(results) {
+      updateItemCount(results.length);
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
 
