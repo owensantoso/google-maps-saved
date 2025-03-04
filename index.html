@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Places Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #searchInput {
+      width: 100%;
+      padding: 10px;
+      font-size: 1em;
+      margin-bottom: 20px;
+    }
+    .place {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 0;
+    }
+    .place h3 {
+      margin: 0;
+      padding: 0;
+    }
+    .tags {
+      font-size: 0.9em;
+      color: #555;
+    }
+    .url a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+    .url a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Search Places</h1>
+  <input type="text" id="searchInput" placeholder="Search by tag, name, note, etc.">
+  <div id="results"></div>
+
+  <script>
+    let places = [];
+
+    // Load the JSON file
+    fetch('places.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Data loaded successfully:', data); // Debug log
+        places = data.places;
+        displayResults(places);
+      })
+      .catch(error => {
+        console.error('Error loading places.json:', error);
+        document.getElementById('results').innerHTML = '<p>Error loading data.</p>';
+      });
+
+    // Add an event listener for the search input
+    document.getElementById('searchInput').addEventListener('input', function() {
+      const query = this.value.toLowerCase().trim();
+      const queryWords = query ? query.split(/\s+/) : [];
+      
+      const filtered = places.filter(place => {
+        // Combine searchable fields using both lowercase and capitalized keys
+        const combined = [
+          place.title || place.Title || '',
+          place.note || place.Note || '',
+          place.comment || place.Comment || '',
+          ...(place.tags || [])
+        ].join(' ').toLowerCase();
+
+        return queryWords.every(word => combined.includes(word));
+      });
+      displayResults(filtered);
+    });
+
+    // Function to display results on the page.
+    function displayResults(results) {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
+
+      if (results.length === 0) {
+        resultsDiv.innerHTML = '<p>No results found.</p>';
+        return;
+      }
+
+      results.forEach(place => {
+        const placeDiv = document.createElement('div');
+        placeDiv.className = 'place';
+
+        // Use Title property if available, otherwise fallback to lowercase key
+        const titleText = place.title || place.Title || 'Untitled';
+        const noteText = place.note || place.Note || '';
+        const commentText = place.comment || place.Comment || '';
+        // Access URL from either key
+        const urlText = place.url || place.URL || '';
+        const tagsArray = place.tags || [];
+
+        const title = document.createElement('h3');
+        title.textContent = titleText;
+        placeDiv.appendChild(title);
+
+        if (noteText) {
+          const note = document.createElement('p');
+          note.textContent = noteText;
+          placeDiv.appendChild(note);
+        }
+
+        if (commentText) {
+          const comment = document.createElement('p');
+          comment.textContent = commentText;
+          placeDiv.appendChild(comment);
+        }
+
+        if (urlText) {
+          const urlPara = document.createElement('p');
+          urlPara.className = 'url';
+          const link = document.createElement('a');
+          link.href = urlText;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = urlText;
+          urlPara.appendChild(link);
+          placeDiv.appendChild(urlPara);
+        }
+
+        if (tagsArray.length > 0) {
+          const tags = document.createElement('p');
+          tags.className = 'tags';
+          tags.textContent = 'Tags: ' + tagsArray.join(', ');
+          placeDiv.appendChild(tags);
+        }
+
+        resultsDiv.appendChild(placeDiv);
+      });
+    }
+  </script>
+</body>
+</html>
