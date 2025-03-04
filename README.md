@@ -29,3 +29,7 @@ A lightweight web application that lets you browse and filter your Google Maps s
 1. Put `index.html` and the generated `places.json` in the same folder.
 2. Open `index.html` in a browser or run it via a local server (e.g., `python -m http.server`).
 3. Enjoy filtering and browsing your saved places!
+
+## Note 
+- This was primarily built as a proof of concept using ChatGPT
+- Future work should be done to refactor the code using best practices such as splitting CSS, JS files from the HTML
