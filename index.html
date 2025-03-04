@@ -95,6 +95,12 @@
   <script>
     let places = [];
 
+    // Helper function to convert URLs in a string to clickable links.
+    function linkify(text) {
+      // This regex matches http:// or https:// followed by non-space characters.
+      return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    }
+
     // Function to update the item count display.
     function updateItemCount(count) {
       const countEl = document.getElementById('itemCount');
@@ -176,9 +182,10 @@
         }
         placeDiv.appendChild(title);
 
+        // For the notes section, transform any URLs into clickable links.
         if (noteText) {
           const note = document.createElement('p');
-          note.textContent = noteText;
+          note.innerHTML = linkify(noteText);
           placeDiv.appendChild(note);
         }
 
