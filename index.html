@@ -22,14 +22,10 @@
       padding: 10px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    /* Page Title */
     .headerBar h1 {
       text-align: center;
       margin: 0 0 10px;
     }
-
-    /* Search row: input on left, item count on right */
     .searchRow {
       display: flex;
       flex-wrap: wrap;
@@ -38,7 +34,6 @@
       max-width: 600px;
       margin: 0 auto;
     }
-
     #searchInput {
       flex: 1;
       min-width: 180px;
@@ -47,24 +42,20 @@
       border: 1px solid #ccc;
       border-radius: 4px;
     }
-
     #itemCount {
-      margin-left: auto; /* pushes item count to the right */
+      margin-left: auto;
       background: rgba(0, 0, 0, 0.05);
       padding: 5px 10px;
       border-radius: 12px;
       font-size: 0.9em;
       color: #333;
     }
-
-    /* Checkbox row: below the search row */
     .checkboxRow {
       display: flex;
       justify-content: center;
       gap: 20px;
       margin-top: 10px;
     }
-
     .checkboxRow label {
       font-size: 0.95em;
     }
@@ -84,22 +75,35 @@
       border-radius: 5px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
     /* If place has "Want to go" tag */
     .wantToGo {
       background: #d9f8d9; /* Light green background */
     }
-
     /* If place has "Favourite places" tag */
     .favouritePlace {
       background: #ffe0e0; /* Light pink background */
+    }
+
+    /* Place content is split into two columns: left & right */
+    .placeRow {
+      display: flex;
+      align-items: flex-start; /* top-align */
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .placeLeft {
+      flex: 1;
+    }
+    .placeRight {
+      flex: 0 0 auto;
+      text-align: right;
+      min-width: 120px;
     }
 
     .place h3 {
       margin: 0 0 10px;
       font-size: 1.2em;
     }
-
     .place h3 a {
       text-decoration: none;
       color: #0066cc;
@@ -107,7 +111,6 @@
     .place h3 a:hover {
       text-decoration: underline;
     }
-
     .place p {
       margin: 5px 0;
       line-height: 1.4;
@@ -119,13 +122,21 @@
       margin-top: 10px;
     }
     .tagBadge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
       background: #eee;
       color: #333;
       padding: 4px 8px;
       margin: 0 6px 6px 0;
       border-radius: 12px;
       font-size: 0.85em;
+      white-space: nowrap; /* keep icon and text together */
+    }
+    .tagBadge img {
+      width: 1em;
+      height: 1em;
+      margin-right: 4px;
+      vertical-align: middle;
     }
   </style>
 </head>
@@ -155,6 +166,14 @@
 
   <script>
     let places = [];
+    let emojiMap = {}; // For quick lookup of svgUrl by tag name.
+
+    // Convert the "emojilists" array into a lookup map: { "korean": "https://..." }
+    function loadEmojiMap(emojilists) {
+      emojilists.forEach(item => {
+        emojiMap[item.name.toLowerCase()] = item.svgUrl;
+      });
+    }
 
     // Helper function to convert URLs in a string to clickable links.
     function linkify(text) {
@@ -204,7 +223,7 @@
       displayResults(filtered);
     }
 
-    // Load JSON data.
+    // Load JSON data. Must contain { "places": [...], "emojilists": [...] } at top level.
     fetch('places.json')
       .then(response => {
         if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
@@ -212,7 +231,8 @@
       })
       .then(data => {
         console.log('Data loaded successfully:', data);
-        places = data.places;
+        places = data.places || [];
+        loadEmojiMap(data.emojilists || []);
         filterResults();
         document.getElementById('searchInput').focus();
       })
@@ -250,40 +270,55 @@
           placeDiv.classList.add('favouritePlace');
         }
 
-        const titleText = place.title || place.Title || 'Untitled';
-        const noteText = place.note || place.Note || '';
-        const commentText = place.comment || place.Comment || '';
-        const urlText = place.url || place.URL || '';
-        const tagsArray = place.tags || [];
+        // Create the row container
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'placeRow';
+        placeDiv.appendChild(rowDiv);
 
-        // Title as clickable link if URL exists.
-        const title = document.createElement('h3');
+        // Left column: title, note, comment
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'placeLeft';
+        rowDiv.appendChild(leftDiv);
+
+        // Right column: tags
+        const rightDiv = document.createElement('div');
+        rightDiv.className = 'placeRight';
+        rowDiv.appendChild(rightDiv);
+
+        // Title
+        const titleText = place.title || place.Title || 'Untitled';
+        const urlText = place.url || place.URL || '';
+        const titleElem = document.createElement('h3');
         if (urlText) {
           const link = document.createElement('a');
           link.href = urlText;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           link.textContent = titleText;
-          title.appendChild(link);
+          titleElem.appendChild(link);
         } else {
-          title.textContent = titleText;
+          titleElem.textContent = titleText;
         }
-        placeDiv.appendChild(title);
+        leftDiv.appendChild(titleElem);
 
-        // Note section with linkify.
+        // Note
+        const noteText = place.note || place.Note || '';
         if (noteText) {
           const note = document.createElement('p');
           note.innerHTML = linkify(noteText);
-          placeDiv.appendChild(note);
+          leftDiv.appendChild(note);
         }
 
+        // Comment
+        const commentText = place.comment || place.Comment || '';
         if (commentText) {
           const comment = document.createElement('p');
           comment.textContent = commentText;
-          placeDiv.appendChild(comment);
+          leftDiv.appendChild(comment);
         }
 
-        // Display tags as colored badges
+        // Tag badges in the right column
+        const tagsArray = place.tags || [];
         if (tagsArray.length > 0) {
           const tagContainer = document.createElement('div');
           tagContainer.className = 'tagContainer';
@@ -291,11 +326,22 @@
           tagsArray.forEach(tag => {
             const badge = document.createElement('span');
             badge.className = 'tagBadge';
-            badge.textContent = tag;
+
+            // Check if there's an emoji for this tag
+            const lowerTag = tag.toLowerCase();
+            if (emojiMap[lowerTag]) {
+              const img = document.createElement('img');
+              img.src = emojiMap[lowerTag];
+              img.alt = tag;
+              badge.appendChild(img);
+            }
+
+            // Append the tag text
+            badge.appendChild(document.createTextNode(tag));
             tagContainer.appendChild(badge);
           });
 
-          placeDiv.appendChild(tagContainer);
+          rightDiv.appendChild(tagContainer);
         }
 
         resultsDiv.appendChild(placeDiv);
